@@ -1,23 +1,55 @@
-node('built-in') 
-{
-    stage('Continuous Download') 
-	{
-    git 'https://github.com/sunildevops77/maven.git'
-	}
-    stage('Continuous Build') 
-	{
-    sh label: '', script: 'mvn package'
-	}
-    stage('Continuous Deployment') 
-	{
-sh label: '', script: 'scp /home/ubuntu/.jenkins/workspace/ScriptedPipeline/webapp/target/webapp.war   ubuntu@172.31.26.217:/var/lib/tomcat8/webapps/qaenv.war'
-	}
-    stage('Continuous Testing') 
-	{
-              sh label: '', script: 'echo "Testing Passed"'
-	}
-    stage('Continuous Delivery') 
-	{
-sh label: '', script: 'scp /home/ubuntu/.jenkins/workspace/ScriptedPipeline/webapp/target/webapp.war   ubuntu@172.31.22.88:/var/lib/tomcat8/webapps/prodenv.war'
-	}
+pipeline {
+    agent any
+
+    environment {
+        TERRAFORM_VERSION = '1.0.11'
+    }
+
+    stages {
+        stage('Install Terraform') {
+            steps {
+                script {
+                    def terraformExists = sh(script: 'terraform --version', returnStatus: true) == 0
+                    if (!terraformExists) {
+                        sh """
+                        wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                        unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                        sudo mv terraform /usr/local/bin/
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('path/to/terraform/configuration') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('path/to/terraform/configuration') {
+                    sh 'terraform plan'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('path/to/terraform/configuration') {
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up...'
+            cleanWs()
+        }
+    }
 }
